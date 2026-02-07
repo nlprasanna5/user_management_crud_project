@@ -336,13 +336,7 @@ Kill the process using the port or change the port number:
 lsof -ti:4000 | xargs kill
 ```
 
-## 📄 License
 
-This project is licensed under the MIT License.
-
-## 👨‍💻 Author
-
-Built with ❤️ using React, TypeScript, and Material-UI
 
 
 
