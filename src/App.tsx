@@ -8,6 +8,12 @@ import {
   Divider,
   Alert,
   Snackbar,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogContentText,
+  DialogActions,
+  Button,
 } from "@mui/material";
 import { People } from "@mui/icons-material";
 import UserForm from "./components/UserForm";
@@ -19,6 +25,13 @@ export default function App() {
   const [users, setUsers] = useState<User[]>([]);
   const [editingUser, setEditingUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(false);
+  const [deleteConfirmDialog, setDeleteConfirmDialog] = useState<{
+    open: boolean;
+    userId: number | null;
+  }>({
+    open: false,
+    userId: null,
+  });
   const [snackbar, setSnackbar] = useState<{
     open: boolean;
     message: string;
@@ -51,9 +64,38 @@ export default function App() {
   }, []);
 
   const handleSubmit = async (user: User) => {
+    setLoading(true);
     try {
-      if (editingUser) {
-        await updateUser(editingUser.id!, user);
+      if (editingUser && editingUser.id) {
+        // Update existing user - check for duplicates excluding current user
+        const duplicateEmail = users.find(
+          (u: User) => u.email === user.email && u.id !== editingUser.id
+        );
+        const duplicatePhone = users.find(
+          (u: User) => u.phone === user.phone && u.id !== editingUser.id
+        );
+
+        if (duplicateEmail) {
+          setSnackbar({
+            open: true,
+            message: "Email already exists. Please use a different email.",
+            severity: "error",
+          });
+          setLoading(false);
+          return;
+        }
+
+        if (duplicatePhone) {
+          setSnackbar({
+            open: true,
+            message: "Phone number already exists. Please use a different phone number.",
+            severity: "error",
+          });
+          setLoading(false);
+          return;
+        }
+
+        await updateUser(editingUser.id, user);
         setSnackbar({
           open: true,
           message: "User updated successfully!",
@@ -61,6 +103,30 @@ export default function App() {
         });
         setEditingUser(null);
       } else {
+        // Create new user - check for duplicates
+        const duplicateEmail = users.find((u: User) => u.email === user.email);
+        const duplicatePhone = users.find((u: User) => u.phone === user.phone);
+
+        if (duplicateEmail) {
+          setSnackbar({
+            open: true,
+            message: "Email already exists. Please use a different email.",
+            severity: "error",
+          });
+          setLoading(false);
+          return;
+        }
+
+        if (duplicatePhone) {
+          setSnackbar({
+            open: true,
+            message: "Phone number already exists. Please use a different phone number.",
+            severity: "error",
+          });
+          setLoading(false);
+          return;
+        }
+
         await createUser(user);
         setSnackbar({
           open: true,
@@ -68,32 +134,70 @@ export default function App() {
           severity: "success",
         });
       }
-      fetchUsers();
-    } catch {
+      await fetchUsers();
+    } catch (error) {
+      console.error("Operation failed:", error);
       setSnackbar({
         open: true,
-        message: "Operation failed. Please try again.",
+        message: editingUser
+          ? "Failed to update user. Please try again."
+          : "Failed to create user. Please try again.",
         severity: "error",
       });
+    } finally {
+      setLoading(false);
     }
   };
 
   const handleDelete = async (id: number) => {
+    if (!id) {
+      console.error("Invalid user ID");
+      return;
+    }
+    
+    // Show confirmation dialog
+    setDeleteConfirmDialog({
+      open: true,
+      userId: id,
+    });
+  };
+
+  const confirmDelete = async () => {
+    const { userId } = deleteConfirmDialog;
+    
+    if (!userId) return;
+    
+    setDeleteConfirmDialog({ open: false, userId: null });
+    setLoading(true);
+    
     try {
-      await deleteUser(id);
+      await deleteUser(userId);
       setSnackbar({
         open: true,
         message: "User deleted successfully!",
         severity: "success",
       });
-      fetchUsers();
-    } catch {
+      
+      // If we're editing the user that's being deleted, cancel edit mode
+      if (editingUser && editingUser.id === userId) {
+        setEditingUser(null);
+      }
+      
+      await fetchUsers();
+    } catch (error) {
+      console.error("Failed to delete user:", error);
       setSnackbar({
         open: true,
-        message: "Failed to delete user",
+        message: "Failed to delete user. Please try again.",
         severity: "error",
       });
+    } finally {
+      setLoading(false);
     }
+  };
+
+  const cancelDelete = () => {
+    setDeleteConfirmDialog({ open: false, userId: null });
   };
 
   const handleCancelEdit = () => {
@@ -179,6 +283,31 @@ export default function App() {
           {snackbar.message}
         </Alert>
       </Snackbar>
+
+      {/* Delete Confirmation Dialog */}
+      <Dialog
+        open={deleteConfirmDialog.open}
+        onClose={cancelDelete}
+        aria-labelledby="delete-dialog-title"
+        aria-describedby="delete-dialog-description"
+      >
+        <DialogTitle id="delete-dialog-title" sx={{ color: "error.main", fontWeight: 600 }}>
+          Confirm Delete
+        </DialogTitle>
+        <DialogContent>
+          <DialogContentText id="delete-dialog-description">
+            Are you sure you want to delete this user? This action cannot be undone.
+          </DialogContentText>
+        </DialogContent>
+        <DialogActions sx={{ px: 3, pb: 2 }}>
+          <Button onClick={cancelDelete} variant="outlined" color="secondary">
+            Cancel
+          </Button>
+          <Button onClick={confirmDelete} variant="contained" color="error" autoFocus>
+            Delete
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Box>
   );
 }
