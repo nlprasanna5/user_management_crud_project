@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, ChangeEvent } from "react";
 import {
   TextField,
   Button,
@@ -27,16 +27,18 @@ interface Props {
 export default function UserForm({ onSubmit, editingUser, onCancel }: Props) {
   const [formData, setFormData] = useState<User>({} as User);
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
-    const updateFormData = () => {
-      if (editingUser) {
-        setFormData(editingUser);
-      } else {
-        setFormData({} as User);
-      }
-    };
-    updateFormData();
+    if (editingUser) {
+      // In edit mode, populate form with user data
+      setFormData({ ...editingUser });
+    } else {
+      // In create mode, reset form
+      setFormData({} as User);
+    }
+    // Clear errors when switching modes
+    setErrors({});
   }, [editingUser]);
 
   const validate = () => {
@@ -63,17 +65,35 @@ export default function UserForm({ onSubmit, editingUser, onCancel }: Props) {
     if (name === "phone" && value !== "" && !/^\d*$/.test(value)) {
       return;
     }
-    setFormData((prev) => ({ ...prev, [name]: value }));
+    setFormData((prev: User) => ({ ...prev, [name]: value }));
     if (errors[name]) {
-      setErrors((prev) => ({ ...prev, [name]: "" }));
+      setErrors((prev: Record<string, string>) => ({ ...prev, [name]: "" }));
     }
   };
 
   const handleSubmit = () => {
+    if (isSubmitting) return; // Prevent duplicate submissions
+    
     if (!validate()) return;
-    onSubmit(formData);
-    setFormData({} as User);
-    setErrors({});
+    
+    setIsSubmitting(true);
+    
+    try {
+      onSubmit(formData);
+      
+      // Only clear form if in create mode (not edit mode)
+      if (!editingUser) {
+        setFormData({} as User);
+        setErrors({});
+      }
+    } catch (error) {
+      console.error("Form submission error:", error);
+    } finally {
+      // Reset submitting state after a short delay
+      setTimeout(() => {
+        setIsSubmitting(false);
+      }, 500);
+    }
   };
 
   const handleCancel = () => {
@@ -139,7 +159,7 @@ export default function UserForm({ onSubmit, editingUser, onCancel }: Props) {
             label={field.label}
             type={field.type}
             value={formData[field.name] || ""}
-            onChange={(e) => handleChange(field.name, e.target.value)}
+            onChange={(e: ChangeEvent<HTMLInputElement>) => handleChange(field.name, e.target.value)}
             error={!!errors[field.name]}
             helperText={errors[field.name]}
             fullWidth
@@ -177,6 +197,7 @@ export default function UserForm({ onSubmit, editingUser, onCancel }: Props) {
         <Button
           variant="contained"
           onClick={handleSubmit}
+          disabled={isSubmitting}
           startIcon={editingUser ? <SaveOutlined /> : <PersonAddOutlined />}
           size="large"
           sx={{
@@ -185,9 +206,16 @@ export default function UserForm({ onSubmit, editingUser, onCancel }: Props) {
             "&:hover": {
               background: "linear-gradient(135deg, #5568d3 0%, #6a3f8f 100%)",
             },
+            "&:disabled": {
+              background: "#cccccc",
+            },
           }}
         >
-          {editingUser ? "Update User" : "Create User"}
+          {isSubmitting
+            ? "Processing..."
+            : editingUser
+            ? "Update User"
+            : "Create User"}
         </Button>
       </Box>
     </Paper>
