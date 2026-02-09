@@ -1,0 +1,46 @@
+{
+  "users": [
+    {
+      "firstName": "Lakshmi",
+      "lastName": "Narapureddy",
+      "phone": "1234567890",
+      "email": "lakshmi@test.com",
+      "id": "1"
+    },
+    {
+      "firstName": "Prasanna",
+      "lastName": "Nara",
+      "phone": "8374021152",
+      "email": "prasanna@gmail.com",
+      "id": "65e9"
+    },
+    {
+      "id": "c728",
+      "firstName": "Ramakrishna ",
+      "lastName": "Gorpena",
+      "phone": "9603321789",
+      "email": "ram@gmail.com"
+    },
+    {
+      "id": "464e",
+      "firstName": "Lakshmi",
+      "lastName": "Prasanna",
+      "phone": "8374021152",
+      "email": "lakshmi@gmail.com"
+    },
+    {
+      "id": "b963",
+      "firstName": "lakshmi",
+      "lastName": "prasanna",
+      "phone": "8374021152",
+      "email": "lakshmi@gmail.com"
+    },
+    {
+      "id": "6724",
+      "firstName": "lakshmi",
+      "lastName": "Prasanna",
+      "phone": "8374021152",
+      "email": "lakshmi@gmail.com"
+    }
+  ]
+}
